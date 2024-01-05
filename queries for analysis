@@ -1,0 +1,34 @@
+sqlCopy codeSELECT first_tx AS date, COUNT(*) AS no_of_addressesFROM (
+    SELECT from_address AS address, MIN(DATE(block_timestamp)) AS first_tx
+    FROM `bigquery-public-data.crypto_ethereum.transactions`
+    WHERE value > 0 AND block_timestamp < '2023-11-01 00:00:00'    GROUP BY address
+    ORDER BY first_tx
+)GROUP BY first_txORDER BY date DESC;
+
+sqlCopy codeSELECT SUM(value/POWER(10,18)) AS ether_value, DATE(block_timestamp) as date, AVG(gas_price*(receipt_gas_used/POWER(10,18))) as avg_tx_feeFROM `bigquery-public-data.crypto_ethereum.transactions`WHERE DATE(block_timestamp) BETWEEN '2018-01-01' AND '2023-03-27'GROUP BY dateORDER BY date;
+
+sqlCopy codeSELECT DATE(block_timestamp) AS date, (SUM(value) / POWER(10,18)) AS total_value FROM `bigquery-public-data.crypto_ethereum.transactions` AS transactionsWHERE block_timestamp < '2023-11-01 00:00:00'GROUP BY dateORDER BY date;
+
+sqlCopy codeSELECT b.block_timestamp, transaction_hash, statusFROM (
+    SELECT block_timestamp, `hash`
+    FROM bigquery-public-data.crypto_ethereum.transactions 
+    WHERE TRUE AND DATE(block_timestamp) > '2023-01-01') aJOIN (
+    SELECT block_timestamp, transaction_hash, status 
+    FROM bigquery-public-data.crypto_ethereum.traces 
+    WHERE TRUE AND DATE(block_timestamp) > '2023-01-01' AND trace_address IS NULL AND traces.status = 0
+) b ON a.hash = b.transaction_hash;
+
+sqlCopy codeWITH value_table AS (
+    -- Subqueries for different types of transactions)SELECT address, FLOOR(SUM(value) / POWER(10, 18)) AS balanceFROM value_tableGROUP BY addressORDER BY balance DESCLIMIT 10;
+
+sqlCopy codeSELECT value, gas_price, receipt_gas_usedFROM bigquery-public-data.crypto_ethereum.transactions AS transactionWHERE value > 0LIMIT 1000;
+
+sqlCopy codeSELECT 
+    SUM(value/POWER(10,18)) AS total_ether_value,
+    DATE(block_timestamp) AS date,
+    SUM(gas_price * (receipt_gas_used/POWER(10,18))) AS total_tx_feeFROM 
+    bigquery-public-data.crypto_ethereum.transactionsWHERE 
+    value > 0GROUP BY 
+    date
+ORDER BY 
+    date;
